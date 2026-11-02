@@ -1,9 +1,27 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { setAppLocale } from './i18n'
+import { isAppLocale } from './i18n/locale'
+
+const { t, locale } = useI18n({ useScope: 'global' })
+
+function changeLanguage(event: Event): void {
+  const value = (event.target as HTMLSelectElement).value
+  if (isAppLocale(value)) setAppLocale(value)
+}
+</script>
 
 <template>
   <main>
-    <h1>Personal Finance Sync</h1>
-    <p>Android app setup is ready.</p>
+    <h1>{{ t('app.title') }}</h1>
+    <p>{{ t('app.ready') }}</p>
+    <div class="language-picker">
+      <label for="app-language">{{ t('language.label') }}</label>
+      <select id="app-language" :value="locale" @change="changeLanguage">
+        <option value="he" lang="he" dir="rtl">{{ t('language.hebrew') }}</option>
+        <option value="en" lang="en" dir="ltr">{{ t('language.english') }}</option>
+      </select>
+    </div>
   </main>
 </template>
 
@@ -12,6 +30,7 @@
   font-family: system-ui, sans-serif;
   color: #18181b;
   background: #fafafa;
+  text-align: start;
 }
 
 body {
@@ -35,7 +54,33 @@ h1 {
 }
 
 p {
-  margin: 12px 0 0;
+  margin-block: 12px 0;
+  margin-inline: 0;
   color: #52525b;
+}
+
+.language-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-inline-size: 288px;
+  margin-block-start: 24px;
+}
+
+select {
+  min-block-size: 48px;
+  padding-block: 10px;
+  padding-inline: 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 10px;
+  font: inherit;
+  color: inherit;
+  background: #ffffff;
+  text-align: start;
+}
+
+select:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 3px;
 }
 </style>

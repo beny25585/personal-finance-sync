@@ -4,6 +4,7 @@
   "include": [
     "vite.config.*",
     "capacitor.config.ts",
+    "tests/**/*.test.ts",
     "vitest.config.*",
     "cypress.config.*",
     "playwright.config.*",

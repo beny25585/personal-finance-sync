@@ -1,0 +1,11 @@
+{
+  "app": {
+    "title": "Personal Finance Sync",
+    "ready": "Android app setup is ready."
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "hebrew": "עברית"
+  }
+}

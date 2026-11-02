@@ -1,12 +1,13 @@
 # Android application setup
 
-Stage 1 adds an Android application using Vue 3, TypeScript, Vite, and Capacitor. The minimal startup screen runs in Capacitor's Android WebView, with its web assets bundled in the APK. There is no Ionic UI framework, Expo, or React Native dependency. No financial screens, API connection, banking credentials, or synchronization are included. The existing Bun backend is unchanged.
+The Android foundation uses Vue 3, TypeScript, Vite, and Capacitor. Its startup screen and language selector run in Capacitor's Android WebView, with web assets and translations bundled in the APK. There is no Ionic UI framework, Expo, or React Native dependency. No financial screens, API connection, banking credentials, or synchronization are included. The existing Bun backend is unchanged.
 
 ## Prerequisites
 
 | Component | Version |
 | --- | --- |
 | Vue | 3.5.44 |
+| Vue I18n | 11.4.17 |
 | Capacitor core, CLI, Android | 8.6.0 |
 | JDK | 21 |
 | Android compile/target SDK | 36 |
@@ -25,10 +26,28 @@ Run from `mobile/`:
 ```bash
 npm ci --ignore-scripts
 npm run typecheck
+npm test
 npm run build
 ```
 
 `npm run build` runs the TypeScript check and Vite build, writing the web bundle to `dist/`. Dependency lifecycle scripts remain disabled unless separately reviewed. Optional browser development uses `npm run dev`, which binds to the local machine only.
+
+## Hebrew and English
+
+Vue I18n supplies interface translations from `src/i18n/locales/en.json` and `he.json`. All current Vue interface strings use translation keys. This translates the interface, not bank descriptions or other provider data.
+
+At startup, a valid saved `en`/`he` choice takes precedence over device languages. Otherwise, the first supported device preference is used, including regional variants and the legacy Hebrew `iw` code. Unsupported preferences fall back to English. Automatic detection is not saved as an explicit choice.
+
+The language selector updates text, document title, `lang`, and `dir` immediately: Hebrew uses RTL and English uses LTR. An explicit selection is saved under the non-sensitive localStorage key `personal-finance-sync.locale`. If storage is blocked, the selector still works for the session. Layout uses logical alignment and spacing for both directions.
+
+`npm test` runs Node's built-in tests for language selection, persistence failures, and translation-key parity. Browser checks exercise the built UI, direction switching, and persistence after reload:
+
+```bash
+npm run build
+npm run test:browser
+```
+
+Browser checks require Chromium and the existing root `puppeteer-core` dependency (install the backend dependencies with Bun). Set `CHROME_PATH` if Chromium is not at `/usr/bin/chromium`. Only in a container unable to use Chromium's sandbox, the local synthetic-UI test accepts `BROWSER_NO_SANDBOX=1`; this does not alter Android or bank-scraper settings. The test serves only local bundled assets and blocks external page requests.
 
 ## Sync and build Android
 
@@ -60,10 +79,12 @@ With a connected and authorized Android device, install locally using:
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Compilation, APK inspection, and launching on a device are separate verification steps. Native device launch has not yet been verified. This setup does not establish bank connectivity or an application-to-server connection.
+Compilation, APK inspection, and launching on a device are separate verification steps. The user reported that the initial 0.1.0 startup screen opened on their phone. The updated bilingual controls have not yet been verified on an Android device. This setup does not establish bank connectivity or an application-to-server connection.
 
 ## Verified in the development environment
 
 On 2026-11-02, the Vue TypeScript check, Vite production build, and Android `assembleDebug` completed successfully. APK signature verification passed, and every file from `dist/` was verified byte-for-byte inside the APK. Its packaged Capacitor configuration has no remote `server.url`.
 
 The startup screen also rendered without JavaScript errors in Chromium at a 390×844 viewport. That was a web-preview smoke check, not an Android device/emulator launch.
+
+For version 0.2.0, all 17 language-policy tests and 4 browser i18n tests passed. TypeScript, the Vite build, Android assembly, APK signature, and bundled-asset checks also passed. Android versionCode is 2 so this development build can update the initial preview without changing its application ID.
