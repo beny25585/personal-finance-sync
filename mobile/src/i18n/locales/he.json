@@ -1,11 +1,75 @@
 {
   "app": {
-    "title": "סנכרון פיננסי אישי",
-    "ready": "האפליקציה מוכנה לפיתוח."
+    "title": "סנכרון פיננסי אישי"
   },
   "language": {
     "label": "שפת ממשק",
     "english": "English",
     "hebrew": "עברית"
+  },
+  "nav": {
+    "main": "ניווט ראשי",
+    "skipToContent": "דילוג לתוכן",
+    "overview": "סקירה",
+    "accounts": "חשבונות",
+    "transactions": "עסקאות",
+    "settings": "הגדרות"
+  },
+  "data": {
+    "unloaded": "לא נטענו נתונים כספיים"
+  },
+  "overview": {
+    "title": "סקירה כללית",
+    "subtitle": "היתרות והפעילות הכספית שלך במקום אחד.",
+    "summary": "סיכום כספי — הנתונים לא נטענו",
+    "balance": "יתרה",
+    "income": "הכנסות",
+    "expenses": "הוצאות",
+    "accounts": "חשבונות וכרטיסים",
+    "viewAccounts": "לחשבונות",
+    "activity": "פעילות אחרונה",
+    "viewTransactions": "לעסקאות"
+  },
+  "accounts": {
+    "title": "חשבונות",
+    "subtitle": "חשבונות הבנק וכרטיסי האשראי שלך.",
+    "emptyTitle": "החשבונות עדיין לא נטענו",
+    "emptyDescription": "פרטי החשבונות והכרטיסים יופיעו כאן לאחר חיבור הנתונים הכספיים."
+  },
+  "transactions": {
+    "title": "עסקאות",
+    "subtitle": "חיפוש וצפייה בפעילות הכספית שלך.",
+    "searchLabel": "חיפוש עסקאות",
+    "searchPlaceholder": "חיפוש לפי תיאור",
+    "filters": "סינון",
+    "status": "מצב העסקה",
+    "all": "כל המצבים",
+    "pending": "ממתינה",
+    "completed": "הושלמה",
+    "clearFilters": "ניקוי",
+    "emptyTitle": "העסקאות עדיין לא נטענו",
+    "emptyDescription": "היסטוריית העסקאות תופיע כאן לאחר חיבור הנתונים הכספיים."
+  },
+  "detail": {
+    "title": "פרטי עסקה",
+    "subtitle": "צפייה בעסקה ובפרטים הזמינים שלה.",
+    "emptyTitle": "לא נבחרה עסקה",
+    "emptyDescription": "כאשר יהיו נתונים, אפשר יהיה לפתוח עסקה מהרשימה ולצפות בפרטיה.",
+    "back": "חזרה לעסקאות"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "subtitle": "התאמת האפליקציה להעדפות שלך.",
+    "languageTitle": "שפה",
+    "languageDescription": "בחירת שפת הממשק וכיוון הקריאה.",
+    "appearanceTitle": "מראה",
+    "appearanceDescription": "אפשר להשתמש בהגדרת המכשיר או לבחור מראה קבוע.",
+    "aboutTitle": "על הגרסה הזו",
+    "aboutDescription": "אפשר כבר לנווט בממשק. הנתונים הכספיים עדיין לא חוברו. במכשיר נשמרות רק העדפות השפה והמראה שלך."
+  },
+  "theme": {
+    "system": "לפי המכשיר",
+    "light": "בהיר",
+    "dark": "כהה"
   }
 }

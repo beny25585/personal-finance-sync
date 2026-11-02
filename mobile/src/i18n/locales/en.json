@@ -1,11 +1,75 @@
 {
   "app": {
-    "title": "Personal Finance Sync",
-    "ready": "Android app setup is ready."
+    "title": "Personal Finance Sync"
   },
   "language": {
     "label": "Language",
     "english": "English",
     "hebrew": "עברית"
+  },
+  "nav": {
+    "main": "Main navigation",
+    "skipToContent": "Skip to content",
+    "overview": "Overview",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "settings": "Settings"
+  },
+  "data": {
+    "unloaded": "No financial data loaded"
+  },
+  "overview": {
+    "title": "Overview",
+    "subtitle": "Balances and activity, together in one place.",
+    "summary": "Financial summary — data not loaded",
+    "balance": "Balance",
+    "income": "Income",
+    "expenses": "Expenses",
+    "accounts": "Accounts & cards",
+    "viewAccounts": "View accounts",
+    "activity": "Recent activity",
+    "viewTransactions": "View transactions"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "subtitle": "Your bank accounts and credit cards.",
+    "emptyTitle": "Accounts have not been loaded",
+    "emptyDescription": "Account and card details will appear here once financial data is connected."
+  },
+  "transactions": {
+    "title": "Transactions",
+    "subtitle": "Find and review your financial activity.",
+    "searchLabel": "Search transactions",
+    "searchPlaceholder": "Search by description",
+    "filters": "Filters",
+    "status": "Transaction status",
+    "all": "All statuses",
+    "pending": "Pending",
+    "completed": "Completed",
+    "clearFilters": "Clear",
+    "emptyTitle": "Transactions have not been loaded",
+    "emptyDescription": "Transaction history will appear here once financial data is connected."
+  },
+  "detail": {
+    "title": "Transaction details",
+    "subtitle": "Review a transaction and its available details.",
+    "emptyTitle": "No transaction selected",
+    "emptyDescription": "Open a transaction from the list to see its details once data is available.",
+    "back": "Back to transactions"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Make the app feel right for you.",
+    "languageTitle": "Language",
+    "languageDescription": "Choose the app language and reading direction.",
+    "appearanceTitle": "Appearance",
+    "appearanceDescription": "Use your device setting or choose a theme.",
+    "aboutTitle": "About this version",
+    "aboutDescription": "The interface is ready to explore. Financial data has not been connected. Only your language and appearance preferences are saved on this device."
+  },
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
   }
 }

@@ -11,13 +11,15 @@
     "android:sync": "npm run build && cap sync android",
     "apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "test": "node --test tests/*.test.ts",
-    "test:browser": "node --test tests/i18n.browser.test.mjs"
+    "test:browser": "node --test tests/*.browser.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",
     "@capacitor/core": "8.6.0",
+    "@lucide/vue": "1.66.0",
     "vue": "3.5.44",
-    "vue-i18n": "11.4.17"
+    "vue-i18n": "11.4.17",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.0",
