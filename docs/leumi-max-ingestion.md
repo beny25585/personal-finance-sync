@@ -1,6 +1,8 @@
 # Leumi and MAX ingestion readiness
 
-KolShek is prepared for Linux development. Real Leumi/MAX authentication and retrieval remain unverified. No bank websites were contacted, credentials supplied, production deployment performed, or synchronization schedule enabled. Automated tests were deliberately not run.
+KolShek is prepared for Linux development. Real Leumi/MAX authentication and retrieval remain unverified. No bank websites were contacted, credentials supplied, production deployment performed, or synchronization schedule enabled. Tests were initially withheld as requested; after subsequent authorization, the selected offline regression suite passed 90 tests on 2026-11-02.
+
+The current product requirement is an Android application. Its connection to the ingestion process and deployment architecture have not been decided. This phase still concerns data retrieval and processing; no mobile UI was added.
 
 ## Source and environment
 
@@ -43,13 +45,19 @@ KolShek clamps initial history to 365 days. These upstream implementations inter
 
 For both providers, it covers provider/account context, internal and provider IDs, dates, descriptions, signed amounts/currencies, status, MAX installments, refunds, repeated imports, duplicate response rows, pending-to-completed updates retaining the internal ID, and failed-scrape logging. Its synthetic balance verifies storage only; it does not claim MAX supplies balances. It does not validate bank login or extraction from raw bank responses.
 
-`tests/fixtures/bun-sqlite-mock.ts` now implements `Database.run`, required by production initialization for pragmas and transaction control. No production ingestion code was rewritten. These tests remain **unrun**.
+`tests/fixtures/bun-sqlite-mock.ts` implements `Database.run`, required by production initialization for pragmas and transaction control. No production ingestion code was rewritten. The four Leumi/MAX offline tests have now passed.
+
+`tests/integration/repeat-import.test.ts` adds 11 passing tests of deliberately repeated synthetic input: redundant copies within a response and across synchronizations, present/omitted/null identifiers, overlapping mocked result sets, and isolation between account numbers and provider companies. Overlapping result sets do not validate bank date filtering or incremental date selection. Equal-valued real bank records are not assumed to represent one transaction.
+
+The selected regression run passed all 90 tests: 11 repeat-import, 4 Leumi/MAX ingestion, 19 identity-helper, and 56 database tests. Browser/scraper calls, credentials, and directory setup in the sync tests are mocked; SQLite is in memory. This establishes only the scenarios exercised, not real authentication or universal reconciliation.
 
 Provider/account context is joined through providers and accounts. Transactions store original and charged amounts/currencies, date and processed date, description, memo, pending/completed status, and installment metadata.
 
 Duplicate prevention combines a per-response key and SQLite uniqueness on `(account_id, hash)`. Exact repeats remain unchanged. Status changes and matching pending transactions can update existing rows.
 
-This is not complete reconciliation: identical genuine purchases can collapse; changed completed transactions can become additional rows; fuzzy pending matching can select the wrong purchase. Same-status metadata corrections are ignored, and current update branches do not refresh installment metadata/type. The “hash” is a concatenated transaction string containing sensitive information. Do not change identity formulas without migration and regression coverage.
+The key omits provider `identifier`, while alternate pending matching also depends on amount/date or description. Supplied synthetic inputs with changed amounts/dates can therefore produce additional rows; other synthetic records can collapse when their keys match. Those observations do not establish which inputs represent the same real bank transaction. The inspected scraper documentation does not guarantee identifier uniqueness or stability. Same-status metadata corrections are ignored, and current update branches do not refresh installment metadata/type. The “hash” is a concatenated transaction string containing sensitive information. Do not change identity formulas without verified requirements, migration, and regression coverage.
+
+The separate branch `test/reconciliation-before-fixes` preserves 21 earlier exploratory tests (6 passed, 15 failed). Those failures are not confirmed provider defects and are not included in the 90-test regression run. Several expected stable IDs through corrections without a verified provider contract. The Leumi USD/EUR fixture does not match its mapper, which emits ILS. The MAX installment fixtures changed the total without changing memo, although both originate from comments in its mapper. These probes must not justify production fixes without evidence supporting their inputs and expectations.
 
 ## Security and commercial limitations
 
@@ -82,6 +90,7 @@ bun run typecheck
 bun run src/cli/index.ts --help
 
 # Run these tests yourself after reviewing the changes:
+bun run test -- tests/integration/repeat-import.test.ts
 bun run test -- tests/integration/leumi-max-sync.test.ts
 bun run test -- tests/unit/dedup.test.ts tests/integration/database.test.ts
 ```
