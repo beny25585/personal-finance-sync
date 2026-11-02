@@ -30,6 +30,11 @@ export class Database {
     this.db.exec(sql);
   }
 
+  // bun:sqlite exposes run() on Database for pragmas and transaction control.
+  run(sql: string): void {
+    this.db.exec(sql);
+  }
+
   prepare(sql: string) {
     const stmt = this.db.prepare(sql);
     return {
