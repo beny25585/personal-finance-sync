@@ -11,9 +11,9 @@ defineProps<{
 <template>
   <div class="empty-state">
     <div class="empty-icon" aria-hidden="true">
-      <component :is="icon" :size="28" :stroke-width="1.6" />
+      <component :is="icon" :size="48" />
     </div>
-    <h2>{{ title }}</h2>
+    <h3>{{ title }}</h3>
     <p>{{ description }}</p>
     <slot />
   </div>

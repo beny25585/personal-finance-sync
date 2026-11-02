@@ -8,58 +8,71 @@
     "hebrew": "עברית"
   },
   "nav": {
-    "main": "Main navigation",
-    "skipToContent": "Skip to content",
-    "overview": "Overview",
-    "accounts": "Accounts",
+    "main": "Mobile navigation",
+    "skipToContent": "Skip to main content",
+    "overview": "Dashboard",
     "transactions": "Transactions",
-    "settings": "Settings"
+    "spending": "Spending",
+    "categories": "Categories",
+    "more": "More",
+    "moreLabel": "More navigation options",
+    "navigation": "Navigation",
+    "description": "All pages and settings",
+    "connections": "Connections",
+    "settings": "Settings",
+    "unavailable": "Spending and categories are not available in this preview.",
+    "close": "Close navigation",
+    "theme": "Theme"
   },
   "data": {
     "unloaded": "No financial data loaded"
   },
   "overview": {
-    "title": "Overview",
-    "subtitle": "Balances and activity, together in one place.",
-    "summary": "Financial summary — data not loaded",
-    "balance": "Balance",
-    "income": "Income",
-    "expenses": "Expenses",
-    "accounts": "Accounts & cards",
-    "viewAccounts": "View accounts",
-    "activity": "Recent activity",
-    "viewTransactions": "View transactions"
+    "title": "Dashboard",
+    "emptyTitle": "Financial data has not been loaded",
+    "emptyDescription": "Connect a bank or credit card provider to see your financial dashboard.",
+    "viewConnections": "View connections"
   },
   "accounts": {
-    "title": "Accounts",
-    "subtitle": "Your bank accounts and credit cards.",
-    "emptyTitle": "Accounts have not been loaded",
-    "emptyDescription": "Account and card details will appear here once financial data is connected."
+    "title": "Connections",
+    "subtitle": "Manage your bank and credit card connections.",
+    "emptyTitle": "Connections have not been loaded",
+    "emptyDescription": "Bank and credit card connections will appear here once financial data is connected."
   },
   "transactions": {
     "title": "Transactions",
-    "subtitle": "Find and review your financial activity.",
     "searchLabel": "Search transactions",
-    "searchPlaceholder": "Search by description",
+    "searchPlaceholder": "Search transactions...",
     "filters": "Filters",
-    "status": "Transaction status",
-    "all": "All statuses",
+    "status": "Status",
+    "all": "All",
     "pending": "Pending",
     "completed": "Completed",
-    "clearFilters": "Clear",
+    "clearFilters": "Clear All",
     "emptyTitle": "Transactions have not been loaded",
-    "emptyDescription": "Transaction history will appear here once financial data is connected."
+    "emptyDescription": "Transaction history will appear here once financial data is connected.",
+    "to": "To",
+    "provider": "Provider",
+    "allProviders": "All providers",
+    "category": "Category",
+    "allCategories": "All categories",
+    "amountRange": "Amount Range",
+    "min": "Min",
+    "max": "Max",
+    "removeFilter": "Remove {label} filter",
+    "from": "From"
   },
   "detail": {
     "title": "Transaction details",
     "subtitle": "Review a transaction and its available details.",
     "emptyTitle": "No transaction selected",
     "emptyDescription": "Open a transaction from the list to see its details once data is available.",
-    "back": "Back to transactions"
+    "back": "Back to transactions",
+    "close": "Close transaction details"
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Make the app feel right for you.",
+    "subtitle": "Language and appearance preferences.",
     "languageTitle": "Language",
     "languageDescription": "Choose the app language and reading direction.",
     "appearanceTitle": "Appearance",

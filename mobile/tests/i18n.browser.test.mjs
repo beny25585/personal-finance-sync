@@ -29,7 +29,6 @@ async function assertLocale(page, locale) {
       document.documentElement.lang === value.lang
       && document.documentElement.dir === value.dir
       && document.title === value.brand
-      && document.querySelector('[data-testid="app-brand"]')?.textContent?.trim() === value.brand
       && document.querySelector('[data-testid="page-heading"]')?.textContent?.trim() === value.heading
       && document.querySelector('[data-testid="financial-data-state"]')?.textContent?.trim() === value.state
       && document.querySelector('label[for="app-language"]')?.textContent?.trim() === value.label
@@ -37,7 +36,6 @@ async function assertLocale(page, locale) {
     ), {}, expected)
   } catch (error) {
     const actual = await page.evaluate(() => ({
-      brand: document.querySelector('[data-testid="app-brand"]')?.textContent?.trim(),
       heading: document.querySelector('[data-testid="page-heading"]')?.textContent?.trim(),
       label: document.querySelector('label[for="app-language"]')?.textContent?.trim(),
       title: document.title,

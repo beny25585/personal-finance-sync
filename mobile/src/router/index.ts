@@ -9,13 +9,15 @@ import SettingsView from '../views/SettingsView.vue'
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', redirect: '/overview' },
-    { path: '/overview', component: OverviewView },
-    { path: '/accounts', component: AccountsView },
+    { path: '/', redirect: '/dashboard' },
+    { path: '/dashboard', component: OverviewView },
+    { path: '/overview', redirect: '/dashboard' },
+    { path: '/providers', component: AccountsView },
+    { path: '/accounts', redirect: '/providers' },
     { path: '/transactions', component: TransactionsView },
     { path: '/transactions/details', component: TransactionDetailView },
     { path: '/settings', component: SettingsView },
-    { path: '/:pathMatch(.*)*', redirect: '/overview' },
+    { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })

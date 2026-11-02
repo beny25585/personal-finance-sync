@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Building2 } from '@lucide/vue'
+import { Unplug } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 
@@ -13,15 +13,11 @@ const { t } = useI18n({ useScope: 'global' })
       <p>{{ t('accounts.subtitle') }}</p>
     </header>
 
-    <section class="panel" :aria-label="t('accounts.title')">
-      <div class="panel-body">
-        <EmptyState
-          data-testid="accounts-empty"
-          :icon="Building2"
-          :title="t('accounts.emptyTitle')"
-          :description="t('accounts.emptyDescription')"
-        />
-      </div>
-    </section>
+    <EmptyState
+      data-testid="accounts-empty"
+      :icon="Unplug"
+      :title="t('accounts.emptyTitle')"
+      :description="t('accounts.emptyDescription')"
+    />
   </section>
 </template>

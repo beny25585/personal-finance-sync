@@ -60,7 +60,7 @@ export function createBrowserHarness() {
   })
 
   async function openApp(t, {
-    path = '/overview',
+    path = '/dashboard',
     languages = ['en-US'],
     savedLocale,
     savedTheme,
@@ -80,7 +80,7 @@ export function createBrowserHarness() {
     await page.setRequestInterception(true)
     page.on('request', (request) => {
       const url = new URL(request.url())
-      const serviceCall = ['fetch', 'xhr', 'eventsource', 'websocket'].includes(request.resourceType())
+      const serviceCall = ['fetch', 'xhr', 'eventsource', 'websocket', 'ping', 'preflight'].includes(request.resourceType())
         || /^\/api(?:\/|$)/.test(url.pathname)
       const localAsset = url.origin === new URL(appUrl).origin
         || ['data:', 'blob:'].includes(url.protocol)
