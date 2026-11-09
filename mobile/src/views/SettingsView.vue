@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Monitor, Moon, Sun } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
+import { isHostedFinanceApp } from '../api/host'
 import LanguagePicker from '../components/LanguagePicker.vue'
 import { isThemePreference, setThemePreference, themePreference } from '../theme'
 
@@ -58,7 +59,7 @@ function changeTheme(value: string): void {
       <header>
         <h2 id="settings-about-title">{{ t('settings.aboutTitle') }}</h2>
       </header>
-      <p class="muted">{{ t('settings.aboutDescription') }}</p>
+      <p class="muted">{{ t(isHostedFinanceApp ? 'cashFlow.about' : 'settings.aboutDescription') }}</p>
     </section>
   </section>
 </template>

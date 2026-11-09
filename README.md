@@ -1,235 +1,59 @@
-<div align="center">
+# Personal Finance Sync
 
-<img src="assets/logo.png" alt="KolShek logo" width="180" />
+Personal Finance Sync is a fork of [KolShek](https://github.com/DaveDushi/kolshek) for tracking Israeli bank and credit-card activity in a local SQLite database. It keeps the `kolshek` CLI and original React dashboard and adds a Vue dashboard for smaller screens. The Vue interface is available in English, Hebrew (right to left), and Russian. Bank descriptions remain in their original language.
 
-# KolShek (כל שקל)
+Use the Vue dashboard to manage connections, assign accounts to groups, and view cash flow for a selected date range. [Moneytor](docs/moneytor.md) provides a read-only source for your own linked checking accounts through its service. Existing direct connections use the inherited [`israeli-bank-scrapers`](https://github.com/eshaham/israeli-bank-scrapers) integration and require a compatible browser.
 
-**Your Israeli finances, locally, on your terms.**
+## Run from source
 
-An open-source CLI that pulls transactions from Israeli banks and credit cards into a local SQLite database. No cloud. No telemetry. No account required.
+Install Bun for the backend and CLI. For the Vue app, install Node.js 22.18+ within the 22.x series or Node.js 24.12+ and npm. Install Chrome or Chromium if you plan to use the direct bank connectors. The Moneytor API connection itself does not require a browser scraper.
 
-[Quick Start](#quick-start) &bull; [Features](#features) &bull; [Supported Providers](#supported-institutions) &bull; [Usage](#usage) &bull; [AI Skills](#ai-agent-skills) &bull; [Security](#security) &bull; [Docs](docs/)
+From the root of this checkout:
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/DaveDushi/kolshek)](https://github.com/DaveDushi/kolshek/releases)
-[![Website](https://img.shields.io/badge/site-kolshek.com-6366f1)](https://kolshek.com)
-
-</div>
-
----
-
-**Personal finance is personal.** Every budgeting app forces you into someone else's system. KolShek doesn't. It fetches your data, stores it locally, and gives your AI agent full access to it. Ask it to build your budget, analyze your spending, or catch anomalies — however you manage your money, KolShek stays out of the way. Your data, your rules.
-
-## Features
-
-- **Web dashboard** — React SPA with 8 pages for managing providers, categories, translations, spending, trends, insights, and transactions with real-time sync progress
-- **Built for AI agents** — first-class plugins for Claude Code, OpenCode, Codex, and OpenClaw. Let your AI assistant query your finances, analyze spending, generate reports, and spot anomalies
-- **`kolshek query`** — read-only SQL so agents (or you) can ask anything
-- **`kolshek db`** — schema introspection for agents to self-discover your tables
-- **`--json` on every command** — structured output agents can parse and act on
-- **18 Israeli banks & credit cards** — all major institutions supported
-- **100% local** — SQLite database, nothing leaves your machine
-- **OS keychain** — credentials stored in Windows Credential Manager, macOS Keychain, or Linux secret-tool
-- **Reports** — monthly summaries, category breakdowns, balance history
-- **Search & filter** — find transactions by text, amount, date, provider, or status
-- **Auto-categorize** — create rules to tag transactions by merchant
-- **Category migration** — rename, merge, or bulk-migrate categories via CLI — no direct DB access needed
-- **Hebrew translation** — map Hebrew merchant names to English with your own rules
-- **Bulk rule import** — import category or translation rules from JSON files
-- **Scheduled sync** — automatic fetching via Task Scheduler, launchd, or cron
-
-## Supported Institutions
-
-| Banks | Credit Cards |
-|---|---|
-| Bank Hapoalim | Visa Cal |
-| Bank Leumi | Max |
-| Bank Discount | Isracard |
-| Bank Mizrahi-Tefahot | American Express |
-| Bank Mercantile | Beyahad Bishvilha |
-| Bank Otsar Hahayal | Behatsdaa |
-| Bank Union | |
-| Bank Beinleumi | |
-| Bank Massad | |
-| Bank Yahav | |
-| Bank One Zero | |
-| Bank Pagi | |
-
-Powered by [israeli-bank-scrapers](https://github.com/eshaham/israeli-bank-scrapers).
-
-## Quick Start
-
-**macOS / Linux:**
-
-```bash
-curl -fsSL https://kolshek.com/install.sh | sh
+```sh
+bun install --ignore-scripts
+npm --prefix mobile ci --ignore-scripts
+bun run prebuild
+npm --prefix mobile run build
+bun run dev -- dashboard --mobile
 ```
 
-**Windows (PowerShell):**
+`prebuild` prepares the original dashboard assets used by the CLI. The final command opens the connected Vue dashboard on the local Bun server. If it does not open the browser, use the local URL printed in your terminal and keep that session URL private. Use **More → Settings** to choose the interface language and **More → Connections** to manage sources. The [Moneytor guide](docs/moneytor.md) covers account selection, sync, and disconnect.
 
-```powershell
-irm https://kolshek.com/install.ps1 | iex
+The server uses your normal KolShek data directory. The standalone Vite preview and bundled Android app are separate from this connected dashboard. See the [mobile setup](mobile/README.md) for the isolated read-only development mode and Android prerequisites.
+
+## CLI and original dashboard
+
+These examples run this checkout. An installed executable uses the same `kolshek` commands.
+
+```sh
+bun run dev -- --no-auto-fetch accounts
+bun run dev -- --no-auto-fetch accounts --json
+bun run dev -- dashboard
 ```
 
-Then run the setup wizard:
+See the [CLI reference](docs/commands.md) for reports, categorization, CSV import, and schedules. The [direct connection guide](docs/first-local-sync.md) covers the existing Leumi and MAX setup. Follow the [AI agent guide](docs/ai-agents.md) for the optional Claude Code, Codex, OpenCode, and OpenClaw integrations.
 
-```bash
-kolshek init
-```
+## Verify locally
 
-This walks you through adding your first bank or credit card, testing the connection, and fetching your initial transactions.
+Run these from the repository root after installing dependencies. The root tests use Vitest. If its SQLite adapter is unavailable, review the `better-sqlite3` install script before running `npm rebuild better-sqlite3`.
 
-See your accounts:
-
-```bash
-kolshek accounts
-```
-
-(Optional) Install the AI agent plugin for your tool:
-
-```bash
-kolshek plugin install claude-code   # Claude Code
-kolshek plugin install opencode      # OpenCode
-kolshek plugin install codex         # Codex (OpenAI)
-kolshek plugin install openclaw      # OpenClaw
-```
-
-> Or download binaries directly from [Releases](https://github.com/DaveDushi/kolshek/releases).
-
-### Prerequisites
-
-- **Google Chrome or Chromium** — needed for bank scraping. KolShek auto-detects your install, or set `KOLSHEK_CHROME_PATH`.
-
-## Usage
-
-```bash
-# Fetch transactions from all providers
-kolshek fetch
-
-# Fetch from a specific provider, with a date range
-kolshek fetch max --from 2024-01-01 --to 2024-06-30
-
-# Search transactions
-kolshek tx search "supermarket"
-
-# Monthly spending report
-kolshek report monthly
-
-# Spending by category
-kolshek report categories
-
-# Add a categorization rule
-kolshek cat rule add "Groceries" --match "שופרסל"
-
-# Bulk-import category rules from JSON (file or stdin)
-echo '[{"category":"Groceries","matchPattern":"שופרסל"}]' | kolshek cat rule import
-kolshek cat rule import rules.json
-
-# Rename or merge a category (updates transactions + rules)
-kolshek cat rename "מזון וצריכה" "Groceries"
-
-# Preview a rename without modifying data
-kolshek cat rename "מזון וצריכה" "Groceries" --dry-run
-
-# Bulk migrate categories from a mapping file
-kolshek cat migrate --file category-map.json --dry-run
-
-# List categories with source info (transactions, rules, or both)
-kolshek cat list
-
-# Translate a Hebrew merchant name
-kolshek tr rule add "Shufersal" --match "שופרסל"
-
-# Bulk-import translation rules from JSON (safe for names with apostrophes)
-echo '[{"englishName":"Ouri'\''s Market","matchPattern":"אורי מרקט"}]' | kolshek tr rule import
-kolshek tr rule import rules.json
-
-# Schedule automatic sync every 12 hours
-kolshek schedule set --every 12h
-
-# Run a SQL query
-kolshek query "SELECT description, SUM(charged_amount) as total FROM transactions GROUP BY description ORDER BY total LIMIT 10"
-
-# Open the web settings dashboard
-kolshek dashboard
-
-# Update to the latest version
-kolshek update
-
-# Structured output for AI agents
-kolshek accounts --json
-```
-
-## AI Agent Skills
-
-The plugin gives your AI agent specialized skills for working with your financial data:
-
-| Skill | What it does |
-|-------|-------------|
-| `/kolshek:init` | Set up from scratch — connect banks, fetch transactions, translate Hebrew, categorize spending |
-| `/kolshek:translate` | Translate Hebrew merchant names to English with review and approval |
-| `/kolshek:categorize` | Analyze transactions and create auto-categorization rules for expenses and income |
-| `/kolshek:analyze` | Deep-dive financial analysis — income/expense mapping, savings opportunities, phased action plan |
-| `/kolshek:review` | Monthly financial review — budget compliance, anomaly detection, report card |
-| `/kolshek:upload-csv` | Import transactions from any bank's CSV export by auto-mapping columns to KolShek format |
-| `/kolshek:custom-page` | Create custom dashboard pages with composable widgets — charts, metrics, tables, progress bars |
-
-The `analyze` and `review` skills were designed by [Adir Traitel](https://adirtraitel.com/).
-
-See [AI Agent Integration](docs/ai-agents.md) for full details.
-
-## Configuration
-
-Config lives at your platform's standard config directory (e.g. `~/.config/kolshek/config.toml` on Linux/macOS, `AppData` on Windows).
-
-| Env Variable | Description |
-|---|---|
-| `KOLSHEK_CHROME_PATH` | Path to Chrome/Chromium binary |
-| `KOLSHEK_CONCURRENCY` | Parallel provider fetches (default: 2) |
-| `KOLSHEK_CREDENTIALS_JSON` | Inline credentials for CI/automation |
-
-## Security
-
-- Credentials stored in your **OS keychain** (Windows Credential Manager, macOS Keychain, Linux `secret-tool`). Falls back to a local AES-256-GCM encrypted file.
-- Credentials **never logged** and zeroed from memory after use.
-- All data stays on your machine — no cloud sync, no telemetry, no analytics.
-- Database and config files restricted to owner-only permissions (icacls on Windows, chmod on Unix).
-- The `query` command is read-only — whitelisted `SELECT` and safe `PRAGMA` only, no writes.
-- Web dashboard binds to `localhost` only, with CSRF protection and XSS-safe HTML rendering.
-
-## Building from Source
-
-```bash
-git clone https://github.com/DaveDushi/kolshek.git
-cd kolshek
-bun install
+```sh
+bun run typecheck
+bun run test
 bun run build
+npm --prefix mobile run typecheck
+npm --prefix mobile test
+npm --prefix mobile run build
+npm --prefix mobile run test:browser
 ```
 
-Cross-platform builds:
+The optional browser suite requires Chromium and the root `puppeteer-core` dependency. See [mobile setup](mobile/README.md#appearance-and-navigation) for the `CHROME_PATH` setting. These checks do not verify an actual Moneytor account. Live Moneytor verification is pending.
 
-```bash
-bun run build:windows-x64
-bun run build:linux-x64
-bun run build:linux-arm64
-bun run build:macos-x64
-bun run build:macos-arm64
-```
+## Data and credentials
 
-## Contributing
+Keep credentials, API tokens, session URLs, exports, and SQLite databases out of Git and chat. Keep the dashboard on the trusted computer that owns the data. The Moneytor token is stored in the operating system’s credential store. Moneytor processes linked data in its own service. This app imports verified transactions for the checking accounts you select into local SQLite. See the [security guide](docs/security.md) for the inherited direct-connection storage.
 
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+## Credits and license
 
-```bash
-bun run dev -- <command>   # Run in dev mode
-bun test                   # Run tests
-bun run typecheck          # Type check
-```
-
-## Disclaimer
-
-KolShek stores your bank credentials and financial data locally on your machine. By using this tool, you accept responsibility for securing your device and reviewing the code you run. This is an open-source project maintained by volunteers — it comes with no warranty, and is not affiliated with any financial institution. Use at your own risk.
-
-## License
-
-[MIT](LICENSE)
+Based on [KolShek by David D](https://github.com/DaveDushi/kolshek). The original `analyze` and `review` agent skills were designed by [Adir Traitel](https://adirtraitel.com/). The fork retains the [MIT license and original copyright notice](LICENSE).

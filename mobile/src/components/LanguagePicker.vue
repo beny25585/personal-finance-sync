@@ -17,6 +17,7 @@ function changeLanguage(event: Event): void {
     <select id="app-language" :value="locale" @change="changeLanguage">
       <option value="he" lang="he" dir="rtl">{{ t('language.hebrew') }}</option>
       <option value="en" lang="en" dir="ltr">{{ t('language.english') }}</option>
+      <option value="ru" lang="ru" dir="ltr">{{ t('language.russian') }}</option>
     </select>
   </div>
 </template>

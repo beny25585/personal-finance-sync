@@ -54,7 +54,7 @@ export function closeDatabase(): void {
 
 // Migrations embedded as strings so they survive bun build --compile
 // (the compiled binary cannot read .sql files from disk).
-const MIGRATIONS: [string, string][] = [
+const MIGRATIONS: [string, string, atomic?: true][] = [
   ["001_initial.sql", `-- KolShek initial schema
 -- Providers: banks and credit card companies
 CREATE TABLE IF NOT EXISTS providers (
@@ -303,6 +303,22 @@ CREATE TABLE IF NOT EXISTS budgets (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(category, month)
 );`],
+
+  ["016_account_group.sql", `ALTER TABLE accounts ADD COLUMN account_group TEXT;`, true],
+  ["017_moneytor.sql", `
+CREATE TABLE IF NOT EXISTS moneytor_accounts (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  bank TEXT,
+  suffix TEXT NOT NULL,
+  available INTEGER NOT NULL DEFAULT 0 CHECK (available IN (0, 1)),
+  selected INTEGER NOT NULL DEFAULT 0 CHECK (selected IN (0, 1)),
+  local_account_id INTEGER UNIQUE REFERENCES accounts(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS moneytor_sync (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  last_sync TEXT NOT NULL
+);`, true],
 ];
 
 // Run all pending SQL migrations.
@@ -315,17 +331,22 @@ function runMigrations(db: Database): void {
     )
   `);
 
-  for (const [name, sql] of MIGRATIONS) {
-    const applied = db
-      .prepare("SELECT 1 FROM _migrations WHERE name = $name")
-      .get({ $name: name });
-
-    if (!applied) {
+  for (const [name, sql, atomic] of MIGRATIONS) {
+    const applyMigration = () => {
+      const applied = db
+        .prepare("SELECT 1 FROM _migrations WHERE name = $name")
+        .get({ $name: name });
+      if (applied) return;
       db.exec(sql);
       db.prepare("INSERT INTO _migrations (name) VALUES ($name)").run({
         $name: name,
       });
-    }
+    };
+
+    // Keep the schema change and its marker together. Legacy migrations
+    // that toggle foreign_keys must remain outside a transaction.
+    if (atomic) db.transaction(applyMigration).immediate();
+    else applyMigration();
   }
 
   // Safety net: re-run CREATE TABLE IF NOT EXISTS statements even for

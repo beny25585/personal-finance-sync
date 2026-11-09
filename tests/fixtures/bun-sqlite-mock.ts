@@ -35,6 +35,10 @@ export class Database {
     this.db.exec(sql);
   }
 
+  transaction<T>(fn: () => T) {
+    return this.db.transaction(fn);
+  }
+
   prepare(sql: string) {
     const stmt = this.db.prepare(sql);
     return {

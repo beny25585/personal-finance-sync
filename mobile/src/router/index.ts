@@ -14,8 +14,13 @@ export const router = createRouter({
     { path: '/overview', redirect: '/dashboard' },
     { path: '/providers', component: AccountsView },
     { path: '/accounts', redirect: '/providers' },
-    { path: '/transactions', component: TransactionsView },
-    { path: '/transactions/details', component: TransactionDetailView },
+    {
+      path: '/transactions',
+      component: TransactionsView,
+      children: [
+        { path: 'details', name: 'transaction-details', component: TransactionDetailView },
+      ],
+    },
     { path: '/settings', component: SettingsView },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
   ],

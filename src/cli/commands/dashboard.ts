@@ -1,5 +1,6 @@
 // kolshek dashboard — starts a local settings dashboard web server.
 
+import { resolve } from "node:path";
 import type { Command } from "commander";
 import { startDashboard } from "../../web/server.js";
 import { info, success, warn } from "../output.js";
@@ -10,17 +11,23 @@ export function registerDashboardCommand(program: Command): void {
     .description("Open the settings dashboard in your browser")
     .option("-p, --port <port>", "Port to listen on", "45091")
     .option("--no-open", "Don't auto-open the browser")
-    .action(async (opts: { port: string; open: boolean }) => {
+    .option("--mobile", "Open the Vue dashboard from the local mobile build")
+    .action(async (opts: { port: string; open: boolean; mobile?: boolean }) => {
       const port = Number(opts.port);
+      const mobileUiRoot = opts.mobile ? resolve(import.meta.dir, "../../../mobile/dist") : undefined;
+      if (mobileUiRoot && !(await Bun.file(resolve(mobileUiRoot, "index.html")).exists())) {
+        throw new Error("The mobile build is missing. Run npm --prefix mobile run build from the repository root.");
+      }
+      const dashboardOptions = { mobileUiRoot };
 
       let result: ReturnType<typeof startDashboard>;
       try {
-        result = startDashboard(port);
+        result = startDashboard(port, dashboardOptions);
       } catch {
         // Port may be blocked by Hyper-V / WSL reserved ranges on Windows.
         // Fall back to an OS-assigned port.
         try {
-          result = startDashboard(0);
+          result = startDashboard(0, dashboardOptions);
           warn(`Port ${port} unavailable, using ${result.server.port} instead.`);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -29,7 +36,7 @@ export function registerDashboardCommand(program: Command): void {
       }
       const { server, token } = result;
       const baseUrl = `http://localhost:${server.port}`;
-      const authUrl = `${baseUrl}/?token=${token}`;
+      const authUrl = `${baseUrl}${opts.mobile ? "/mobile/" : "/"}?token=${token}`;
 
       success(`Dashboard running at ${authUrl}`);
       info("Press Ctrl+C to stop.\n");

@@ -2,6 +2,7 @@ import { watchEffect } from 'vue'
 import { createI18n } from 'vue-i18n'
 import en from './locales/en.json'
 import he from './locales/he.json'
+import ru from './locales/ru.json'
 import {
   getDirection,
   getInitialLocale,
@@ -10,7 +11,7 @@ import {
   type LocaleStorage,
 } from './locale'
 
-const messages = { en, he } satisfies Record<AppLocale, typeof en>
+const messages = { en, he, ru } satisfies Record<AppLocale, typeof en>
 
 function getStorage(): LocaleStorage | undefined {
   try {

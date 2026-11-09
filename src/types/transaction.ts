@@ -58,6 +58,7 @@ export interface TransactionWithContext extends Transaction {
   providerCompanyId: string;
   providerAlias: string;
   accountNumber: string;
+  accountDisplayName?: string | null;
 }
 
 /** Filters for querying transactions */
@@ -73,6 +74,7 @@ export interface TransactionFilters {
   maxAmount?: number;
   status?: TransactionStatus;
   description?: string;
+  visibleAccountsOnly?: boolean;
   category?: string | null;
   translated?: boolean;
   sort?: "date" | "amount";

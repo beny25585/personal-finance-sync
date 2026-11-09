@@ -203,5 +203,5 @@ export function getProviderInfo(companyId: CompanyId): ProviderInfo | undefined 
 }
 
 export function isValidCompanyId(id: string): id is CompanyId {
-  return id in PROVIDERS;
+  return Object.hasOwn(PROVIDERS, id);
 }

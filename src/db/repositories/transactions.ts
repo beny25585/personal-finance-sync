@@ -32,6 +32,7 @@ interface TransactionWithContextRow {
   provider_company_id: string;
   provider_alias: string;
   account_number: string;
+  account_display_name: string | null;
 }
 
 function rowToTransactionWithContext(
@@ -63,6 +64,7 @@ function rowToTransactionWithContext(
     providerCompanyId: row.provider_company_id,
     providerAlias: row.provider_alias,
     accountNumber: row.account_number,
+    accountDisplayName: row.account_display_name,
   };
 }
 
@@ -223,7 +225,8 @@ function buildContextQuery(
       p.display_name AS provider_display_name,
       p.company_id AS provider_company_id,
       p.alias AS provider_alias,
-      a.account_number
+      a.account_number,
+      a.display_name AS account_display_name
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
     JOIN providers p ON a.provider_id = p.id
@@ -242,7 +245,7 @@ function buildFilterClauses(filters: TransactionFilters): {
   conditions: string[];
   params: SqlParams;
 } {
-  const conditions: string[] = [];
+  const conditions: string[] = filters.visibleAccountsOnly ? ["a.excluded = 0"] : [];
   const params: SqlParams = {};
 
   if (filters.from) {
@@ -307,6 +310,13 @@ function buildFilterClauses(filters: TransactionFilters): {
   return { conditions, params };
 }
 
+export function getVisibleTransaction(id: number): TransactionWithContext | null {
+  const row = getDatabase().prepare(
+    buildContextQuery("WHERE t.id = $id AND a.excluded = 0", "", ""),
+  ).get({ $id: id }) as TransactionWithContextRow | null;
+  return row ? rowToTransactionWithContext(row) : null;
+}
+
 export function listTransactions(
   filters: TransactionFilters,
 ): TransactionWithContext[] {
@@ -319,7 +329,7 @@ export function listTransactions(
   const sortCol =
     filters.sort === "amount" ? "t.charged_amount" : "t.date";
   const sortDir = filters.sortDirection === "asc" ? "ASC" : "DESC";
-  const orderClause = `ORDER BY ${sortCol} ${sortDir}`;
+  const orderClause = `ORDER BY ${sortCol} ${sortDir}, t.id ${sortDir}`;
 
   let limitClause = "";
   if (filters.limit !== undefined) {
@@ -356,7 +366,7 @@ export function searchTransactions(
   const sortCol =
     filters?.sort === "amount" ? "t.charged_amount" : "t.date";
   const sortDir = filters?.sortDirection === "asc" ? "ASC" : "DESC";
-  const orderClause = `ORDER BY ${sortCol} ${sortDir}`;
+  const orderClause = `ORDER BY ${sortCol} ${sortDir}, t.id ${sortDir}`;
 
   let limitClause = "";
   if (filters?.limit !== undefined) {

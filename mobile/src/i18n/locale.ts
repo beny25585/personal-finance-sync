@@ -1,4 +1,4 @@
-export type AppLocale = 'en' | 'he'
+export type AppLocale = 'en' | 'he' | 'ru'
 
 export interface LocaleStorage {
   getItem(key: string): string | null
@@ -8,7 +8,7 @@ export interface LocaleStorage {
 export const localeStorageKey = 'personal-finance-sync.locale'
 
 export function isAppLocale(value: unknown): value is AppLocale {
-  return value === 'en' || value === 'he'
+  return value === 'en' || value === 'he' || value === 'ru'
 }
 
 export function getInitialLocale(
@@ -24,8 +24,8 @@ export function getInitialLocale(
 
   for (const language of languages) {
     const code = language.toLowerCase().split('-')[0]
-    if (code === 'he' || code === 'iw') return 'he'
-    if (code === 'en') return 'en'
+    if (code === 'iw') return 'he'
+    if (isAppLocale(code)) return code
   }
   return 'en'
 }

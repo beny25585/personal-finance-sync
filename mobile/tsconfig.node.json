@@ -3,6 +3,7 @@
   "extends": "@tsconfig/node24/tsconfig.json",
   "include": [
     "vite.config.*",
+    "dev/**/*.ts",
     "capacitor.config.ts",
     "tests/**/*.test.ts",
     "vitest.config.*",

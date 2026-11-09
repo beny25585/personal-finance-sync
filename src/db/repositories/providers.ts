@@ -1,6 +1,9 @@
 import type { Provider, ProviderType, CompanyId } from "../../types/index.js";
 import { getDatabase } from "../database.js";
 
+export const MONEYTOR_ALIAS = "moneytor:api";
+export const MONEYTOR_COMPANY = "moneytor";
+
 interface ProviderRow {
   id: number;
   company_id: string;
@@ -29,6 +32,9 @@ export function createProvider(
   type: ProviderType,
   alias?: string,
 ): Provider {
+  if ((alias ?? companyId) === MONEYTOR_ALIAS && (companyId !== MONEYTOR_COMPANY || type !== "bank")) {
+    throw new Error("This connection alias is reserved for Moneytor.");
+  }
   const db = getDatabase();
   const row = db
     .prepare(
@@ -49,8 +55,8 @@ export function createProvider(
 export function getProvider(id: number): Provider | null {
   const db = getDatabase();
   const row = db
-    .prepare("SELECT * FROM providers WHERE id = $id")
-    .get({ $id: id }) as ProviderRow | null;
+    .prepare("SELECT * FROM providers WHERE id = $id AND alias != $moneytor")
+    .get({ $id: id, $moneytor: MONEYTOR_ALIAS }) as ProviderRow | null;
 
   return row ? rowToProvider(row) : null;
 }
@@ -96,17 +102,17 @@ export function resolveProviders(identifier: string): Provider[] {
 
   // Try alias (exact match)
   const byAlias = getProviderByAlias(identifier);
-  if (byAlias) return [byAlias];
+  if (byAlias) return byAlias.alias === MONEYTOR_ALIAS ? [] : [byAlias];
 
   // Try companyId (returns all instances)
-  return getProvidersByCompanyId(identifier);
+  return getProvidersByCompanyId(identifier).filter(provider => provider.alias !== MONEYTOR_ALIAS);
 }
 
 export function listProviders(): Provider[] {
   const db = getDatabase();
   const rows = db
-    .prepare("SELECT * FROM providers ORDER BY display_name, alias")
-    .all() as ProviderRow[];
+    .prepare("SELECT * FROM providers WHERE alias != $moneytor ORDER BY display_name, alias")
+    .all({ $moneytor: MONEYTOR_ALIAS }) as ProviderRow[];
 
   return rows.map(rowToProvider);
 }
@@ -129,5 +135,6 @@ export function getMostRecentSyncTime(): string | null {
 
 export function deleteProvider(id: number): void {
   const db = getDatabase();
-  db.prepare("DELETE FROM providers WHERE id = $id").run({ $id: id });
+  db.prepare("DELETE FROM providers WHERE id = $id AND alias != $moneytor")
+    .run({ $id: id, $moneytor: MONEYTOR_ALIAS });
 }

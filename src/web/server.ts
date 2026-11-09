@@ -5,6 +5,9 @@
 import { resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { WEB_FILES } from "./web-files.js";
+import { serveMobileUi } from "./mobile-ui.js";
+import { handleCashFlow } from "./cash-flow.js";
+import { handleMoneytor } from "./moneytor.js";
 import {
   listProviders,
   createProvider,
@@ -26,7 +29,7 @@ import {
 import {
   countTransactions,
   listTransactions,
-  searchTransactions,
+  getVisibleTransaction,
   updateTransactionCategory,
 } from "../db/repositories/transactions.js";
 import {
@@ -97,7 +100,7 @@ import {
   getFixedVariableTrendData,
 } from "../services/trends.js";
 import { getInsights } from "../services/insights.js";
-import { syncProviders } from "../services/sync.js";
+import { fetchAndApplyRules, syncProviders } from "../services/sync.js";
 import { transactionHash } from "../core/sync-engine.js";
 import { validateCsvImport, buildTransactionInput } from "../core/csv-import.js";
 import { upsertAccount } from "../db/repositories/accounts.js";
@@ -264,10 +267,19 @@ function resolveExcludedClassifications(
   return defaultExclusions;
 }
 
-export function startDashboard(port: number): { server: ReturnType<typeof Bun.serve>; token: string } {
+export interface DashboardOptions {
+  /** Development-only access to the connection list and Leumi/MAX field definitions. */
+  connectionsReadOnly?: boolean;
+  /** Keep isolated development sessions separate from the regular dashboard. */
+  devSessionPath?: string;
+  mobileUiRoot?: string;
+}
+
+export function startDashboard(port: number, options: DashboardOptions = {}): { server: ReturnType<typeof Bun.serve>; token: string } {
   // allowedOrigins is set after Bun.serve() starts so it uses the actual port
   // (which may differ from the requested port when port=0 or the port is unavailable).
   let allowedOrigins: string[] = [];
+  const pendingConnections = new Set<number>();
 
   // Generate a one-time session token — only the CLI user sees this in the terminal.
   // The token is exchanged for an HttpOnly cookie on first visit.
@@ -277,7 +289,7 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
   // Write session token to .dev-session so the Vite dev proxy can inject it.
   // This file is gitignored and only used for local development.
   try {
-    const devSessionPath = resolve(import.meta.dir, "../../.dev-session");
+    const devSessionPath = options.devSessionPath ?? resolve(import.meta.dir, "../../.dev-session");
     Bun.write(devSessionPath, `${cookieName}=${sessionToken}`).catch(() => {});
   } catch {
     // Non-fatal — only needed for Vite dev mode
@@ -393,7 +405,49 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
         }
       }
 
+      // An isolated preview must not reach credential, import, sync, or OS-scheduler code.
+      // Keep authentication above unchanged and explicitly allow only the required reads.
+      if (options.connectionsReadOnly) {
+        if (method === "GET" && path === "/api/v2/dev/capabilities") {
+          return json({ mode: "connections-read-only" });
+        }
+        const allowedRead = method === "GET" && (
+          path === "/api/v2/providers" ||
+          /^\/api\/v2\/providers\/fields\/(leumi|max)$/.test(path)
+        );
+        if (!allowedRead) {
+          return jsonError("READ_ONLY_PREVIEW", "This isolated server only exposes connection read endpoints.", 403);
+        }
+      }
+
       try {
+        if (method === "GET" && options.mobileUiRoot) {
+          const mobileAsset = await serveMobileUi(path, options.mobileUiRoot, SECURITY_HEADERS);
+          if (mobileAsset) return mobileAsset;
+        }
+
+        if (path === "/api/v2/moneytor" || path.startsWith("/api/v2/moneytor/")) {
+          const result = await handleMoneytor(req, path);
+          if (result) return "error" in result
+            ? jsonError(result.code, result.error, result.status)
+            : json(result.data);
+        }
+
+        if (path === "/api/v2/cash-flow" || /^\/api\/v2\/accounts\/\d+\/organization$/.test(path)) {
+          const result = await handleCashFlow(req, url);
+          if (result) {
+            return "error" in result
+              ? jsonError("CASH_FLOW_REQUEST_FAILED", result.error, result.status)
+              : json(result.data);
+          }
+        }
+
+        if (method === "GET" && path === "/api/v2/providers/catalog") {
+          return json(Object.entries(PROVIDERS).map(([companyId, provider]) => ({
+            companyId, displayName: provider.displayName, type: provider.type,
+          })));
+        }
+
         // --- Static assets (served from embedded web-files.ts) ---
         if (method === "GET" && path === "/favicon.png") {
           const res = serveEmbedded("/favicon.png", "public, max-age=86400");
@@ -463,34 +517,64 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
           try {
             const body = await parseJsonBody(req);
             const companyId = String(body.companyId ?? "");
-            const alias = String(body.alias ?? companyId);
-            const credentials = body.credentials as Record<string, string> | undefined;
-
             if (!isValidCompanyId(companyId)) {
               return jsonError("INVALID_COMPANY_ID", "Invalid provider type.");
             }
-            if (!/^[a-zA-Z0-9_-]+$/.test(alias)) {
+            if (body.alias != null && typeof body.alias !== "string") {
+              return jsonError("INVALID_ALIAS", "Invalid alias.");
+            }
+            const requestedAlias = typeof body.alias === "string" ? body.alias.trim() : "";
+            if (requestedAlias && !/^[a-zA-Z0-9_-]{1,64}$/.test(requestedAlias)) {
               return jsonError("INVALID_ALIAS", "Alias must contain only letters, numbers, dashes, and underscores.");
+            }
+            let alias = requestedAlias || companyId;
+            if (!requestedAlias) {
+              for (let suffix = 2; getProviderByAlias(alias); suffix++) {
+                alias = `${companyId}-${suffix}`;
+              }
+            }
+            if (getProviderByAlias(alias)) {
+              return jsonError("ALIAS_IN_USE", "This connection name is already in use.", 409);
             }
 
             const info = PROVIDERS[companyId];
-
-            if (credentials) {
+            const supplied = body.credentials;
+            if (supplied !== undefined && (!supplied || typeof supplied !== "object" || Array.isArray(supplied))) {
+              return jsonError("INVALID_CREDENTIALS", "Invalid credentials.");
+            }
+            const credentials: Record<string, string> = {};
+            if (supplied) {
               for (const field of info.loginFields) {
-                if (field !== "otpLongTermToken" && !credentials[field]) {
+                const value = (supplied as Record<string, unknown>)[field];
+                if (field === "otpLongTermToken" && (value === undefined || value === "")) continue;
+                if (typeof value !== "string" || !value.trim()) {
                   return jsonError("MISSING_FIELD", `Missing required field: ${field}`);
                 }
+                credentials[field] = value;
               }
-              await storeCredentials(alias, credentials);
-              // Zero credentials
-              for (const key of Object.keys(credentials)) credentials[key] = "";
             }
 
+            // Reserve the unique alias before touching the credential store.
             const provider = createProvider(companyId, info.displayName, info.type, alias);
-            return json(provider, 201);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            return jsonError("PROVIDER_CREATE_FAILED", msg, 500);
+            if (!supplied) return json(provider, 201);
+
+            pendingConnections.add(provider.id);
+            try {
+              if (await hasCredentials(alias)) {
+                deleteProvider(provider.id);
+                return jsonError("ALIAS_IN_USE", "Credentials already exist for this connection name.", 409);
+              }
+              await storeCredentials(alias, credentials);
+              return json(provider, 201);
+            } catch {
+              deleteProvider(provider.id);
+              return jsonError("PROVIDER_CREATE_FAILED", "Could not save the connection.", 500);
+            } finally {
+              pendingConnections.delete(provider.id);
+              for (const key of Object.keys(credentials)) credentials[key] = "";
+            }
+          } catch {
+            return jsonError("PROVIDER_CREATE_FAILED", "Could not create the connection.", 500);
           }
         }
 
@@ -501,6 +585,7 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
             const provider = getProvider(Number(v2DeleteProviderMatch[1]));
             if (!provider) return jsonError("NOT_FOUND", "Provider not found.", 404);
 
+            if (pendingConnections.has(provider.id)) return jsonError("CONNECTION_BUSY", "This connection is being saved.", 409);
             await deleteCredentials(provider.alias).catch(() => {});
             deleteProvider(provider.id);
             return json({ deleted: true, id: provider.id });
@@ -517,6 +602,7 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
             const provider = getProvider(Number(v2AuthMatch[1]));
             if (!provider) return jsonError("NOT_FOUND", "Provider not found.", 404);
 
+            if (pendingConnections.has(provider.id)) return jsonError("CONNECTION_BUSY", "This connection is being saved.", 409);
             const info = PROVIDERS[provider.companyId as CompanyId];
             if (!info) return jsonError("UNKNOWN_TYPE", "Unknown provider type.");
 
@@ -612,9 +698,10 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
         if (method === "GET" && path === "/api/v2/transactions") {
           try {
             const sp = url.searchParams;
-            const searchQuery = sp.get("search") ?? "";
-
-            const filters: TransactionFilters = {};
+            const filters: TransactionFilters = {
+              description: sp.get("search")?.trim(),
+              visibleAccountsOnly: true,
+            };
             if (sp.has("from")) filters.from = sp.get("from")!;
             if (sp.has("to")) filters.to = sp.get("to")!;
             if (sp.has("provider")) filters.providerId = Number(sp.get("provider"));
@@ -625,20 +712,24 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
             if (sp.has("status")) filters.status = sp.get("status") as TransactionFilters["status"];
             if (sp.has("minAmount")) filters.minAmount = Number(sp.get("minAmount"));
             if (sp.has("maxAmount")) filters.maxAmount = Number(sp.get("maxAmount"));
-            if (sp.has("limit")) filters.limit = Math.min(Number(sp.get("limit")) || 50, MAX_PAGINATION_LIMIT);
-            else filters.limit = 50;
-            if (sp.has("offset")) filters.offset = Number(sp.get("offset"));
+            filters.limit = Math.min(Math.max(Math.trunc(Number(sp.get("limit")) || 50), 1), MAX_PAGINATION_LIMIT);
+            const offset = Number(sp.get("offset"));
+            filters.offset = Number.isSafeInteger(offset) && offset > 0 ? offset : 0;
 
-            const data = searchQuery
-              ? searchTransactions(searchQuery, filters)
-              : listTransactions(filters);
-
-            const total = countTransactions(filters);
+            const { data, total } = getDatabase().transaction(() => ({
+              data: listTransactions(filters), total: countTransactions(filters),
+            }))();
             return json({ transactions: data, total });
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             return jsonError("TRANSACTIONS_LIST_FAILED", msg, 500);
           }
+        }
+
+        const v2TxDetailMatch = /^\/api\/v2\/transactions\/([1-9]\d*)$/.exec(path);
+        if (method === "GET" && v2TxDetailMatch) {
+          const id = Number(v2TxDetailMatch[1]);
+          return json(Number.isSafeInteger(id) ? getVisibleTransaction(id) : null);
         }
 
         // PATCH /api/v2/transactions/:id/category — update category
@@ -1570,13 +1661,16 @@ export function startDashboard(port: number): { server: ReturnType<typeof Bun.se
 
         // POST /api/v2/fetch — start a fetch (JSON body). Returns SSE stream.
         if (method === "POST" && path === "/api/v2/fetch") {
+          const body = await parseJsonBody(req);
           if (activeFetch) {
             return jsonError("SYNC_IN_PROGRESS", "A sync is already in progress.", 409);
           }
-          const body = await parseJsonBody(req);
           const visible = body.visible === true || body.visible === 1;
           const providerIds = Array.isArray(body.providers) ? (body.providers as number[]) : undefined;
-          return startFetchSSE(visible, providerIds, jsonError);
+          if (pendingConnections.size && (!providerIds?.length || providerIds.some((id) => pendingConnections.has(id)))) {
+            return jsonError("CONNECTION_BUSY", "A connection is being saved.", 409);
+          }
+          return startFetchSSE(visible, providerIds, jsonError, Boolean(options.mobileUiRoot));
         }
 
         // GET /api/v2/fetch/events — SSE stream for fetch progress
@@ -1670,7 +1764,12 @@ function createSSEStream(
   });
 }
 
-function startFetchSSE(visible: boolean, providerIds: number[] | undefined, jsonError: JsonErrorFn): Response {
+function startFetchSSE(
+  visible: boolean,
+  providerIds: number[] | undefined,
+  jsonError: JsonErrorFn,
+  applyRules: boolean,
+): Response {
   const events: string[] = [];
   const listeners: Set<(event: string) => void> = new Set();
 
@@ -1702,7 +1801,8 @@ function startFetchSSE(visible: boolean, providerIds: number[] | undefined, json
   const placeholder = { promise: Promise.resolve(), events, listeners, abort: abortController };
   activeFetch = placeholder;
 
-  const fetchPromise = syncProviders(providers, {
+  const synchronize = applyRules ? fetchAndApplyRules : syncProviders;
+  const fetchPromise = synchronize(providers, {
     visible,
     signal: abortController.signal,
     onProgress: (alias, stage) => {
